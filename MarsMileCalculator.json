@@ -1,0 +1,6 @@
+{
+    "Marsmile": 100,
+    "Donations_In": "donations.csv",
+    "Donors_Out": "donors.csv",
+    "Miles_Out": "miles.csv"
+}
