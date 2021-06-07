@@ -13,14 +13,22 @@ def appendDonor(donors, name, amount):
         donors[name] = amount
 
 # Append Miles
-def appendMile(miles, donors, donor, ddate):
-    while donors[donor] >= mile:
+def appendMile(miles, donors, name, ddate):
+    while donors[name] >= mile:
         if len(miles) > 0:
             last = miles[-1][0]
         else:
             last = 0
-        miles.append((last + 1, ddate, donor))
-        donors[donor] -= mile
+        miles.append((last + 1, ddate, name))
+        donors[name] -= mile
+
+# Append Donations
+def appendDonations(donations, duplicates, name, ddate):
+    if (ddate, name) in donations:
+        if (ddate, name) not in duplicates:
+            duplicates.add((ddate, name))
+    else:
+        donations.add((ddate, name))
 
 # Export Donors
 def exportDonors(donors, fname):
@@ -30,7 +38,7 @@ def exportDonors(donors, fname):
     dfile.close()
     logging.info("Exported file " + fname)
  
-# Export Donors
+# Export Miles
 def exportMiles(miles, fname):
     dfile = open(fname, 'wt')
     for m in miles:
@@ -38,6 +46,14 @@ def exportMiles(miles, fname):
     dfile.close()
     logging.info("Exported file " + fname)
 
+# Export Duplicates
+def exportDuplicates(duplicates, fname):
+    dfile = open(fname, 'wt')
+    for d in duplicates:
+        dfile.writelines(str(d[0]) + "," + d[1] + "\n")
+    dfile.close()
+    logging.info("Exported file " + fname)
+ 
 # Main
 if __name__ == "__main__":
     calc_log = "MarsMileCalculator.log"
@@ -72,18 +88,22 @@ if __name__ == "__main__":
             fhistory = ospath + config['Donations_In']
             fdonors = ospath + config["Donors_Out"]
             fmiles = ospath + config["Miles_Out"]
+            fduplicates = ospath + config["Duplicates_Out"]
+
     except:
         logging.critical("Unable to read config file.")
         exit(1)
 
-    donors = {}
+    donors = {} #dictionary donors["Name"] stores total number of miles.
     mdonors = {} #this is a temporary version of donors used to support Mars Miles.
-    miles = []
+    miles = [] #list of tuples: (1, date, donor name)
+    donations = set() #set of tuples (date, donor name) of all donations for detecting duplicates
+    duplicates = set() #set of tuples (date, donor name) of only duplicates based on those two parameters
     dCount = 0
 
     try:
         history = open(fhistory, 'rt')
-        logging.info("Reading donations file " + fhistory + ".")
+        logging.info("Reading donations file " + fhistory)
         header = history.readline().rstrip().split(',')
         #print((header[1]).strip(), header[2].strip())
         for h in history:
@@ -92,6 +112,7 @@ if __name__ == "__main__":
                 appendDonor(donors, d[1], float(d[2]))
                 appendDonor(mdonors, d[1], float(d[2]))
                 appendMile(miles, mdonors, d[1], dt.datetime.strptime(d[0], '%m/%d/%Y').date())
+                appendDonations(donations, duplicates, d[1], dt.datetime.strptime(d[0], '%m/%d/%Y').date())
                 dCount += 1
         history.close()
     except:
@@ -106,6 +127,11 @@ if __name__ == "__main__":
         exit(1)
     try:
         exportMiles(miles, fmiles)
+    except:
+        logging.critical("Unable to write Miles file.")
+        exit(1)
+    try:
+        exportDuplicates(duplicates, fduplicates)
     except:
         logging.critical("Unable to write Miles file.")
         exit(1)

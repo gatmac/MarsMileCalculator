@@ -2,5 +2,6 @@
     "Marsmile": 100,
     "Donations_In": "donations.csv",
     "Donors_Out": "donors.csv",
-    "Miles_Out": "miles.csv"
+    "Miles_Out": "miles.csv",
+    "Duplicates_Out": "duplicates.csv"
 }
