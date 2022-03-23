@@ -40,6 +40,18 @@ func (mm MarsMile) String() []string {
 	return mString
 }
 
+type Duplicate struct {
+	Date string
+	Name string
+}
+
+func (d Duplicate) String() []string {
+	dString := make([]string, 2)
+	dString[0] = d.Date
+	dString[1] = d.Name
+	return dString
+}
+
 func ReadConfigJson(fn string) ConfigFile {
 	var config ConfigFile
 	yfile, err := os.ReadFile(fn)
@@ -117,14 +129,31 @@ func WriteDonors(fn string, donors map[string]float32) {
 	}
 }
 
+func WriteDuplicates(fn string, dups []Duplicate) {
+	f, err := os.OpenFile(fn, os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		fmt.Printf("Unable to open file '%s' for writing.\n", fn)
+		panic(err)
+	}
+	defer f.Close()
+	w := csv.NewWriter(f)
+	defer w.Flush()
+	for _, d := range dups {
+		w.Write(d.String())
+	}
+}
+
 func main() {
 	var mm []MarsMile
+	var dups []Duplicate
 	donorTotal := map[string]float32{}
 	donorRunning := map[string]float32{}
 	mmCount := 1
 
 	cfg := ReadConfigJson(configFileName)
 	donations := ReadDonations(cfg.DonationsIn)
+
+	// iterate donations to determine mars miles and donors
 	for _, d := range donations {
 		donorTotal[d.Name] += d.Amount
 		donorRunning[d.Name] += d.Amount
@@ -139,10 +168,27 @@ func main() {
 			donorRunning[d.Name] -= cfg.Marsmile
 		}
 	}
-	fmt.Println("Writing file " + cfg.MilesOut)
+
+	// iterate donations (twice) to determine duplicates
+	for i := 0; i < len(donations)-1; i++ {
+		for j := i + 1; j < len(donations); j++ {
+			if donations[i].Date == donations[j].Date && donations[i].Name == donations[j].Name {
+				newDup := Duplicate{
+					Date: donations[i].Date,
+					Name: donations[i].Name,
+				}
+				dups = append(dups, newDup)
+			}
+		}
+	}
+
+	//fmt.Println("Writing file " + cfg.MilesOut)
 	WriteMarsMiles(cfg.MilesOut, mm)
-	fmt.Println("Writing file " + cfg.DonorsOut)
+	//fmt.Println("Writing file " + cfg.DonorsOut)
 	WriteDonors(cfg.DonorsOut, donorTotal)
+	//fmt.Println("Writing file " + cfg.DuplicatesOut)
+	WriteDuplicates(cfg.DuplicatesOut, dups)
+
 	/* for _, m := range mm {
 		fmt.Println(m)
 	}
