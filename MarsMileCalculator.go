@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 )
 
 const (
@@ -23,6 +24,7 @@ type ConfigFile struct {
 type Donation struct {
 	Date   string
 	Name   string
+	NameLc string
 	Amount float32
 }
 
@@ -41,8 +43,9 @@ func (mm MarsMile) String() []string {
 }
 
 type Duplicate struct {
-	Date string
-	Name string
+	Date   string
+	Name   string
+	Amount float32
 }
 
 func (d Duplicate) String() []string {
@@ -89,6 +92,7 @@ func ReadDonations(fn string) []Donation {
 				don := Donation{
 					Date:   d[0],
 					Name:   d[1],
+					NameLc: strings.ToLower(d[1]),
 					Amount: float32(dAmount),
 				}
 				donArray = append(donArray, don)
@@ -169,10 +173,44 @@ func main() {
 		}
 	}
 
+	// Modification needed: First scan the duplicates, record current if match found, skip the donations if found in duplicates.
+	// If we make it to donations, scan from start to current - 1, record both duplicates, break inner loop
 	// iterate donations (twice) to determine duplicates
-	for i := 0; i < len(donations)-1; i++ {
+	ld := len(donations)
+	if ld > 2 {
+		for i := 0; i < ld; i++ {
+			// first compare against existing duplicates
+			skipDupsCheck := false
+			for j := 0; j < len(dups); j++ {
+				if donations[i].Date == dups[j].Date && donations[i].NameLc == strings.ToLower(dups[j].Name) {
+					newDup := Duplicate{
+						Date:   donations[i].Date,
+						Name:   donations[i].Name,
+						Amount: donations[i].Amount,
+					}
+					dups = append(dups, newDup)
+					skipDupsCheck = true
+					break
+				}
+			}
+			if !skipDupsCheck {
+				for j := i + 1; j < ld; j++ {
+					if donations[i].Date == donations[j].Date && donations[i].NameLc == donations[j].NameLc {
+						newDup := Duplicate{
+							Date:   donations[i].Date,
+							Name:   donations[i].Name,
+							Amount: donations[i].Amount,
+						}
+						dups = append(dups, newDup)
+						break
+					}
+				}
+			}
+		}
+	}
+	/* for i := 0; i < len(donations)-1; i++ {
 		for j := i + 1; j < len(donations); j++ {
-			if donations[i].Date == donations[j].Date && donations[i].Name == donations[j].Name {
+			if donations[i].Date == donations[j].Date && donations[i].NameLc == donations[j].NameLc {
 				newDup := Duplicate{
 					Date: donations[i].Date,
 					Name: donations[i].Name,
@@ -180,7 +218,7 @@ func main() {
 				dups = append(dups, newDup)
 			}
 		}
-	}
+	} */
 
 	//fmt.Println("Writing file " + cfg.MilesOut)
 	WriteMarsMiles(cfg.MilesOut, mm)
