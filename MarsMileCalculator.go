@@ -49,9 +49,10 @@ type Duplicate struct {
 }
 
 func (d Duplicate) String() []string {
-	dString := make([]string, 2)
+	dString := make([]string, 3)
 	dString[0] = d.Date
 	dString[1] = d.Name
+	dString[2] = fmt.Sprintf("%.2f", d.Amount)
 	return dString
 }
 
@@ -173,7 +174,7 @@ func main() {
 		}
 	}
 
-	// Modification needed: First scan the duplicates, record current if match found, skip the donations if found in duplicates.
+	// First scan the duplicates, record current if match found, skip the donations if found in duplicates.
 	// If we make it to donations, scan from start to current - 1, record both duplicates, break inner loop
 	// iterate donations (twice) to determine duplicates
 	ld := len(donations)
